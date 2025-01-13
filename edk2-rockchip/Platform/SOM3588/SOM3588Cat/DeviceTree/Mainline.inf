@@ -14,7 +14,7 @@
   VERSION_STRING                 = 1.0
 
 [Sources]
-  devicetree/mainline/som3588-cat.dts
+  devicetree/mainline/upstream/src/arm64/rockchip/som3588-cat.dts
 
 [Packages]
   MdePkg/MdePkg.dec

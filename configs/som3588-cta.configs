@@ -1,0 +1,3 @@
+DSC_FILE=edk2-rockchip/Platform/rockchip/SOM3588/SOM3588-Cat.dsc
+PLATFORM_NAME=SOM3588-Cat
+SOC=RK3588

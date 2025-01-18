@@ -14,8 +14,8 @@
   VERSION_STRING                 = 1.0
 
 [Sources]
-#**/devicetree/mainline/som3588-cat.dts
-  devicetree/mainline/upstream/src/arm64/rockchip/rk3588-orangepi-5-max.dts
+  /devicetree/mainline/som3588-cat.dts
+
 [Packages]
   MdePkg/MdePkg.dec
   Silicon/Rockchip/RockchipPkg.dec

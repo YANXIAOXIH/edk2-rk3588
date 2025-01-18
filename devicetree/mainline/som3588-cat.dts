@@ -1261,11 +1261,6 @@
 	};
 };
 
-/* PCIe30 PHY Port0 & Port1 */
-&pcie30phy {
-	rockchip,pcie30-phymode = <PHY_MODE_PCIE_AGGREGATION>;
-	status = "okay";
-};
 
 // PCIe30 Port0 & Port1: M.2 M-Key
 &pcie3x4 {

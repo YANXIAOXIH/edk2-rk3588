@@ -20,12 +20,9 @@
 #include "rk3588-linux.dtsi"
 
 
-#include "som3588-cat-hdmi1-vp0.dtsi"
-//#include "som3588-cat-csi.dtsi"
-
 / {
-	model = "SOM3588 Cat";
-	compatible = "rockchip,som3588-cat", "rockchip,rk3588";
+	model = "SOM3588Cat";
+	compatible = "rockchip,SOM3588Cat", "rockchip,rk3588";
 
 	/* If hdmirx node is disabled, delete the reserved-memory node here. */
 	reserved-memory {
@@ -42,7 +39,7 @@
 	};
 
 	chosen: chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xfeb50000 console=ttyFIQ0 coherent_pool=1m irqchip.gicv3_pseudo_nmi=0";
+		bootargs = "earlycon=uart8250,mmio32,0xfeb50000 console=ttyFIQ0 irqchip.gicv3_pseudo_nmi=0 rcupdate.rcu_expedited=1 rcu_nocbs=all";
 	};
 
 	adc_keys: adc-keys {
@@ -227,6 +224,16 @@
 		rockchip,jack-det;
 	};
 
+	hdmi1_sound: hdmi1-sound {
+		status = "okay";
+		compatible = "rockchip,hdmi";
+		rockchip,mclk-fs = <128>;
+		rockchip,card-name = "rockchip-hdmi1";
+		rockchip,cpu = <&i2s6_8ch>;
+		rockchip,codec = <&hdmi1>;
+		rockchip,jack-det;
+	};
+
 	dp0_sound: dp0-sound {
 		status = "okay";
 		compatible = "rockchip,hdmi";
@@ -304,21 +311,21 @@
 // 	status = "okay";
 // };
 
-&dmc_opp_table {
-	/delete-node/ opp-2750000000;
-};
+//&dmc_opp_table {
+//	/delete-node/ opp-2750000000;
+//};
 
 &av1d {
 	status = "okay";
 };
 
-&av1d_mmu {
-	status = "okay";
-};
+//&av1d_mmu {
+//	status = "okay";
+//};
 
-&spdif_tx2 {
-	status = "okay";
-};
+//&spdif_tx2 {
+//	status = "okay";
+//};
 
 &i2s5_8ch {
 	status = "okay";

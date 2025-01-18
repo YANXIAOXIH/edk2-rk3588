@@ -55,11 +55,11 @@
 
 [PcdsFixedAtBuild.common]
   # SMBIOS platform config
-  gRockchipTokenSpaceGuid.PcdPlatformName|"SOM3588 Cat"
+  gRockchipTokenSpaceGuid.PcdPlatformName|"SOM3588Cat"
   gRockchipTokenSpaceGuid.PcdPlatformVendorName|"SOM3588"
-  gRockchipTokenSpaceGuid.PcdFamilyName|"SOM3588 Cat"
+  gRockchipTokenSpaceGuid.PcdFamilyName|"SOM3588Cat"
   gRockchipTokenSpaceGuid.PcdProductUrl|"http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-5-plus.html"
-  gRockchipTokenSpaceGuid.PcdDeviceTreeName|"SOM3588 Cat"
+  gRockchipTokenSpaceGuid.PcdDeviceTreeName|"SOM3588Cat"
 
   # I2C
   gRockchipTokenSpaceGuid.PcdI2cSlaveAddresses|{ 0x42, 0x43, 0x51 }

@@ -27,7 +27,7 @@ jobs:
           - orangepi-5plus
           - rock-5a
           - rock-5b
-          - station-m3
+          - som3588-cat
         CONFIGURATION: ${{ fromJSON(format('[{0}]', inputs.build-configs || '"Debug"')) }}
     steps:
       - name: Checkout

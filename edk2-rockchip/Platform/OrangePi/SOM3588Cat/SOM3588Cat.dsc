@@ -13,7 +13,7 @@
 #
 ################################################################################
 [Defines]
-  PLATFORM_NAME                  = OrangePi5Plus
+  PLATFORM_NAME                  = SOM3588Cat
   PLATFORM_VENDOR                = OrangePi
   PLATFORM_GUID                  = 6bb03dd4-c246-474a-851c-70ea24a89e43
   PLATFORM_VERSION               = 0.2

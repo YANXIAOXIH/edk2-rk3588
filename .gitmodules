@@ -16,5 +16,4 @@
 	branch = rk3588
 [submodule "devicetree/mainline/upstream"]
 	path = devicetree/mainline/upstream
-	# url = https://git.kernel.org/pub/scm/linux/kernel/git/devicetree/devicetree-rebasing.git
-	url = https://github.com/armbian/linux-rockchip.git
+	url = https://git.kernel.org/pub/scm/linux/kernel/git/devicetree/devicetree-rebasing.git

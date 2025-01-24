@@ -1,21 +1,5 @@
 name: TEST
 on:
-  push:
-    paths-ignore:
-      - '**.md'
-    branches:
-      - master
-  pull_request:
-    paths-ignore:
-      - '**.md'
-    branches:
-      - master
-  workflow_call:
-    inputs:
-      build-configs:
-        type: string
-        required: true
-  workflow_dispatch:
 
 jobs:
   build:

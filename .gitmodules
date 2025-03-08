@@ -16,4 +16,4 @@
 	branch = rk3588
 [submodule "devicetree/mainline/upstream"]
 	path = devicetree/mainline/upstream
-	url = https://github.com/YANXIAOXIH/linux.git
+	url = https://ghproxy.net/https://github.com/YANXIAOXIH/linux.git

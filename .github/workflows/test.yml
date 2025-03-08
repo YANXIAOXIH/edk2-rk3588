@@ -15,6 +15,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: copy som3588
+        shell: bash
+        run: |
+          cp -rf ./devicetree/som3588/*  ./devicetree/mainline/upstream
+        
       - name: Install dependencies
         shell: bash
         run: |

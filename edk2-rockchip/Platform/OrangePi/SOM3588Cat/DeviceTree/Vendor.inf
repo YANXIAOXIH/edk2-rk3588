@@ -14,4 +14,4 @@
   VERSION_STRING                 = 1.0
 
 [Binaries]
-  BIN|devicetree/vendor/som3588-cat.dtb
+  BIN|devicetree/vendor/rk3588-som3588-cat.dtb

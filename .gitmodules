@@ -16,4 +16,4 @@
 	branch = rk3588
 [submodule "devicetree/mainline/upstream"]
 	path = devicetree/mainline/upstream
-	url = https://ghproxy.net/https://github.com/YANXIAOXIH/linux.git
+	url = https://git.kernel.org/pub/scm/linux/kernel/git/devicetree/devicetree-rebasing.git

@@ -15,10 +15,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: copy som3588
-        shell: bash
-        run: |
-          cp -rf ./devicetree/som3588/*  ./devicetree/mainline/upstream
         
       - name: Install dependencies
         shell: bash
@@ -66,6 +62,9 @@ jobs:
 
           export EDK2_BUILD_FLAGS=" \
               ${EDK2_SECUREBOOT_FLAGS}"
+
+          cp -rf ./devicetree/som3588/arch/*  ./devicetree/mainline/upstream/arch
+          cp -rf ./devicetree/som3588/include/*  ./devicetree/mainline/upstream/include
 
           ./build.sh --device ${{matrix.PLATFORM}} --release ${{matrix.CONFIGURATION}} --edk2-flags "${EDK2_BUILD_FLAGS}"
           mv RK3588_NOR_FLASH.img ${{matrix.PLATFORM}}_UEFI_${{matrix.CONFIGURATION}}_${{steps.get_version_tag.outputs.version}}.img

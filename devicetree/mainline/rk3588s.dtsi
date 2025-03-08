@@ -2825,7 +2825,7 @@
 			mode-normal = <BOOT_NORMAL>;
 			mode-recovery = <BOOT_RECOVERY>;
 			//mode-ums = <BOOT_UMS>;
-			mode-panic = <BOOT_PANIC>;
+			//mode-panic = <BOOT_PANIC>;
 			mode-watchdog = <BOOT_WATCHDOG>;
 			mode-quiescent = <BOOT_QUIESCENT>;
 			/* add a mode to capture the ramdump through usb */

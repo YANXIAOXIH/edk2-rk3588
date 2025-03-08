@@ -6717,9 +6717,9 @@
 		npu_leakage: npu-leakage@28 {
 			reg = <0x28 0x1>;
 		};
-		codec_leakage: codec-leakage@29 {
-			reg = <0x29 0x1>;
-		};
+		//codec_leakage: codec-leakage@29 {
+		//	reg = <0x29 0x1>;
+		//};
 		cpul_opp_info: cpul-opp-info@3d {
 			reg = <0x3d 0x6>;
 		};

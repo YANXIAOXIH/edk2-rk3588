@@ -2820,7 +2820,7 @@
 			compatible = "syscon-reboot-mode";
 			offset = <0x80>;
 			mode-bootloader = <BOOT_BL_DOWNLOAD>;
-			mode-charge = <BOOT_CHARGING>;
+			//mode-charge = <BOOT_CHARGING>;
 			mode-fastboot = <BOOT_FASTBOOT>;
 			mode-loader = <BOOT_BL_DOWNLOAD>;
 			mode-normal = <BOOT_NORMAL>;

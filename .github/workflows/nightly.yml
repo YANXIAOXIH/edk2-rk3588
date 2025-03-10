@@ -3,6 +3,8 @@ run-name: Nightly build
 on:
   schedule:
     - cron: "0 0 * * *"
+        required: true
+  workflow_dispatch:
 
 jobs:
   prepare:

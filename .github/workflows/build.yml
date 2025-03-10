@@ -23,29 +23,7 @@ jobs:
     strategy:
       matrix:
         PLATFORM:
-          - aio-3588q
-          - blade3
-          - edge2
-          - fydetab-duo
-          - h88k
-          - indiedroid-nova
-          - itx-3588j
-          - nanopc-cm3588-nas
-          - nanopc-t6
-          - nanopi-m6
-          - nanopi-r6c
-          - nanopi-r6s
-          - orangepi-5
-          - orangepi-5plus
-          - powerstation-6
-          - r58-mini
-          - r58x
-          - roc-rk3588s-pc
-          - rock-5-itx
-          - rock-5a
-          - rock-5b
-          - rock-5bplus
-          - station-m3
+          - som3588-cat
         CONFIGURATION: ${{ fromJSON(format('[{0}]', inputs.build-configs || '"Debug"')) }}
     steps:
       - name: Checkout
@@ -99,6 +77,8 @@ jobs:
 
           export EDK2_BUILD_FLAGS=" \
               ${EDK2_SECUREBOOT_FLAGS}"
+          
+          cp -rf ./devicetree/mainline/include/dt-bindings/* ./devicetree/mainline/upstream/include/dt-bindings
 
           ./build.sh --device ${{matrix.PLATFORM}} --release ${{matrix.CONFIGURATION}} --edk2-flags "${EDK2_BUILD_FLAGS}"
           mv RK3588_NOR_FLASH.img ${{matrix.PLATFORM}}_UEFI_${{matrix.CONFIGURATION}}_${{steps.get_version_tag.outputs.version}}.img

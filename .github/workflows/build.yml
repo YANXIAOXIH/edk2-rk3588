@@ -79,7 +79,10 @@ jobs:
               ${EDK2_SECUREBOOT_FLAGS}"
           
           cp -rf ./devicetree/mainline/include/dt-bindings/* ./devicetree/mainline/upstream/include/dt-bindings
-
+          cp -rf ./devicetree/mainline/rk3588-som3588-cat.dts ./devicetree/mainline/upstream/src/arm64/rockchip/
+          cp -rf ./devicetree/mainline/rk3588-base.dtsi ./devicetree/mainline/upstream/src/arm64/rockchip/
+          cp -rf ./devicetree/mainline/rk3588-linux.dtsi ./devicetree/mainline/upstream/src/arm64/rockchip/
+          
           ./build.sh --device ${{matrix.PLATFORM}} --release ${{matrix.CONFIGURATION}} --edk2-flags "${EDK2_BUILD_FLAGS}"
           mv RK3588_NOR_FLASH.img ${{matrix.PLATFORM}}_UEFI_${{matrix.CONFIGURATION}}_${{steps.get_version_tag.outputs.version}}.img
 

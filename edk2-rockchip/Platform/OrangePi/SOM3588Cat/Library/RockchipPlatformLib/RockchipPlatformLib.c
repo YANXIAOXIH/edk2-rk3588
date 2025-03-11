@@ -210,12 +210,12 @@ UsbPortPowerEnable (
   DEBUG ((DEBUG_INFO, "UsbPortPowerEnable called\n"));
 
   /* vcc5v0_host_en */
-  GpioPinWrite (3, GPIO_PIN_PD5, TRUE);
-  GpioPinSetDirection (3, GPIO_PIN_PD5, GPIO_PIN_OUTPUT);
+  GpioPinWrite (3, GPIO_PIN_PB7, TRUE);
+  GpioPinSetDirection (3, GPIO_PIN_PB7, GPIO_PIN_OUTPUT);
 
-  /* typec5v_otg */
-  GpioPinWrite (4, GPIO_PIN_PB3, TRUE);
-  GpioPinSetDirection (4, GPIO_PIN_PB3, GPIO_PIN_OUTPUT);
+  /* typec5v_pwren */
+  GpioPinWrite (4, GPIO_PIN_PB0, TRUE);
+  GpioPinSetDirection (4, GPIO_PIN_PB0, GPIO_PIN_OUTPUT);
 }
 
 VOID
@@ -246,16 +246,27 @@ PcieIoInit (
       /* vcc3v3_pcie30 */
       GpioPinSetDirection (2, GPIO_PIN_PB6, GPIO_PIN_OUTPUT);
       break;
-    case PCIE_SEGMENT_PCIE20L0:
+    case PCIE_SEGMENT_PCIE20L0: // M.2 A+E Key
+      /* reset */
+      GpioPinSetDirection (4, GPIO_PIN_PA5, GPIO_PIN_OUTPUT);
+      /* vcc3v3_pcie2x1l0 */
+      GpioPinSetDirection (2, GPIO_PIN_PC5, GPIO_PIN_OUTPUT);
       break;
     case PCIE_SEGMENT_PCIE20L1: // RTL8125B
       /* reset */
-      GpioPinSetDirection (3, GPIO_PIN_PD4, GPIO_PIN_OUTPUT);
+      GpioPinSetDirection (3, GPIO_PIN_PB3, GPIO_PIN_OUTPUT);
       break;
-    case PCIE_SEGMENT_PCIE20L2:
+    case PCIE_SEGMENT_PCIE20L2: // RTL8125B
+      /* reset */
+      GpioPinSetDirection (4, GPIO_PIN_PA2, GPIO_PIN_OUTPUT);
       break;
     default:
       break;
+  }
+
+  if ((Segment == PCIE_SEGMENT_PCIE20L1) || (Segment == PCIE_SEGMENT_PCIE20L2)) {
+    /* vcc3v3_pcie_eth */
+    GpioPinSetDirection (3, GPIO_PIN_PB4, GPIO_PIN_OUTPUT);
   }
 }
 
@@ -271,8 +282,12 @@ PciePowerEn (
       GpioPinWrite (2, GPIO_PIN_PB6, Enable);
       break;
     case PCIE_SEGMENT_PCIE20L0:
+      GpioPinWrite (2, GPIO_PIN_PC5, Enable);
+      break;
     case PCIE_SEGMENT_PCIE20L1:
     case PCIE_SEGMENT_PCIE20L2:
+      /* Yes, disabling one would disable the other as well. */
+      GpioPinWrite (3, GPIO_PIN_PB4, !Enable);
       break;
     default:
       break;
@@ -291,11 +306,13 @@ PciePeReset (
       GpioPinWrite (4, GPIO_PIN_PB6, !Enable);
       break;
     case PCIE_SEGMENT_PCIE20L0:
+      GpioPinWrite (4, GPIO_PIN_PA5, !Enable);
       break;
     case PCIE_SEGMENT_PCIE20L1:
-      GpioPinWrite (3, GPIO_PIN_PD4, !Enable);
+      GpioPinWrite (3, GPIO_PIN_PB3, !Enable);
       break;
     case PCIE_SEGMENT_PCIE20L2:
+      GpioPinWrite (4, GPIO_PIN_PA2, !Enable);
       break;
     default:
       break;
@@ -338,8 +355,8 @@ PlatformInitLeds (
   )
 {
   /* Status indicator */
-  GpioPinWrite (0, GPIO_PIN_PC5, FALSE);
-  GpioPinSetDirection (0, GPIO_PIN_PC5, GPIO_PIN_OUTPUT);
+  GpioPinWrite (3, GPIO_PIN_PA6, FALSE);
+  GpioPinSetDirection (3, GPIO_PIN_PA6, GPIO_PIN_OUTPUT);
 }
 
 VOID
@@ -348,7 +365,18 @@ PlatformSetStatusLed (
   IN BOOLEAN  Enable
   )
 {
-  GpioPinWrite (0, GPIO_PIN_PC5, Enable);
+  GpioPinWrite (3, GPIO_PIN_PA6, Enable);
+}
+
+VOID
+EFIAPI
+PlatformWiFiEnable (
+  IN BOOLEAN  Enable
+  )
+{
+  // WiFi - enable
+  GpioPinWrite (0, GPIO_PIN_PC4, Enable);
+  GpioPinSetDirection (0, GPIO_PIN_PC4, GPIO_PIN_OUTPUT);
 }
 
 CONST EFI_GUID *
@@ -383,4 +411,7 @@ PlatformEarlyInit (
   )
 {
   // Configure various things specific to this platform
+  PlatformWiFiEnable (TRUE);
+
+  GpioPinSetFunction (1, GPIO_PIN_PD3, 0); // jdet
 }

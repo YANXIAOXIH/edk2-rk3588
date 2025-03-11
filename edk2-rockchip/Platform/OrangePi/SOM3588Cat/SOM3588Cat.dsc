@@ -15,7 +15,7 @@
 [Defines]
   PLATFORM_NAME                  = SOM3588Cat
   PLATFORM_VENDOR                = OrangePi
-  PLATFORM_GUID                  = 6bb03dd4-c246-474a-851c-70ea24a89e43
+  PLATFORM_GUID                  = 8d614edc-3f4b-448e-84cb-6690c73fadb3
   PLATFORM_VERSION               = 0.2
   DSC_SPECIFICATION              = 0x00010019
   OUTPUT_DIRECTORY               = Build/$(PLATFORM_NAME)
@@ -61,10 +61,10 @@
   gRockchipTokenSpaceGuid.PcdPlatformName|"SOM3588Cat"
   gRockchipTokenSpaceGuid.PcdPlatformVendorName|"SOM3588"
   gRockchipTokenSpaceGuid.PcdFamilyName|"SOM3588Cat"
-  gRockchipTokenSpaceGuid.PcdProductUrl|"http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-5-plus.html"
-  gRockchipTokenSpaceGuid.PcdDeviceTreeName|"som3588-cat"
+  gRockchipTokenSpaceGuid.PcdProductUrl|"https://github.com/YANXIAOXIH/SOM3588Cat-Armbian"
+  gRockchipTokenSpaceGuid.PcdDeviceTreeName|"rk3588-som3588-cat"
 
-  # I2C
+# I2C
   gRockchipTokenSpaceGuid.PcdI2cSlaveAddresses|{ 0x42, 0x43, 0x51 }
   gRockchipTokenSpaceGuid.PcdI2cSlaveBuses|{ 0x0, 0x0, 0x6, 0x7 }
   gRockchipTokenSpaceGuid.PcdI2cSlaveBusesRuntimeSupport|{ FALSE, FALSE, TRUE, FALSE }
@@ -78,7 +78,7 @@
   # PCIe/SATA/USB Combo PIPE PHY support flags and default values
   #
   gRK3588TokenSpaceGuid.PcdComboPhy0Switchable|FALSE
-  gRK3588TokenSpaceGuid.PcdComboPhy1Switchable|TRUE
+  gRK3588TokenSpaceGuid.PcdComboPhy1Switchable|FALSE
   gRK3588TokenSpaceGuid.PcdComboPhy2Switchable|FALSE
   gRK3588TokenSpaceGuid.PcdComboPhy0ModeDefault|$(COMBO_PHY_MODE_PCIE)
   gRK3588TokenSpaceGuid.PcdComboPhy1ModeDefault|$(COMBO_PHY_MODE_PCIE)

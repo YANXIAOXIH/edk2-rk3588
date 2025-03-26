@@ -94,6 +94,8 @@ Rk806Configure (
 
   RK806Init ();
 
+  RK806PinSetFunction (MASTER, 1, 2); // rk806_dvs1_pwrdn
+
   for (RegCfgIndex = 0; RegCfgIndex < ARRAY_SIZE (rk806_init_data); RegCfgIndex++) {
     RK806RegulatorInit (rk806_init_data[RegCfgIndex]);
   }
@@ -244,6 +246,14 @@ PciePeReset (
   if (Segment == PCIE_SEGMENT_PCIE20L2) {
     GpioPinWrite (3, GPIO_PIN_PD1, !Enable);
   }
+}
+
+VOID
+EFIAPI
+HdmiTxIomux (
+  IN UINT32  Id
+  )
+{
 }
 
 VOID

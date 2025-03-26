@@ -2,7 +2,7 @@
 #
 #  Copyright (c) 2011-2012, ARM Limited. All rights reserved.
 #  Copyright (c) 2021-2022, Rockchip Limited. All rights reserved.
-#  Copyright (c) 2023-2024, Mario Bălănică <mariobalanica02@gmail.com>
+#  Copyright (c) 2023-2025, Mario Bălănică <mariobalanica02@gmail.com>
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
@@ -168,9 +168,6 @@
   CacheMaintenanceLib|ArmPkg/Library/ArmCacheMaintenanceLib/ArmCacheMaintenanceLib.inf
   DefaultExceptionHandlerLib|ArmPkg/Library/DefaultExceptionHandlerLib/DefaultExceptionHandlerLib.inf
   CpuExceptionHandlerLib|ArmPkg/Library/ArmExceptionLib/ArmExceptionLib.inf
-  ArmDisassemblerLib|ArmPkg/Library/ArmDisassemblerLib/ArmDisassemblerLib.inf
-  ArmGicLib|ArmPkg/Drivers/ArmGic/ArmGicLib.inf
-  ArmGicArchLib|ArmPkg/Library/ArmGicArchLib/ArmGicArchLib.inf
   ArmSmcLib|ArmPkg/Library/ArmSmcLib/ArmSmcLib.inf
   ArmMmuLib|ArmPkg/Library/ArmMmuLib/ArmMmuBaseLib.inf
   ArmLib|ArmPkg/Library/ArmLib/ArmBaseLib.inf
@@ -249,7 +246,6 @@
   BaseVariableLib|Silicon/Rockchip/Library/BaseVariableLib/BaseVariableLib.inf
 
 [LibraryClasses.common.SEC]
-  ArmGicArchLib|ArmPkg/Library/ArmGicArchSecLib/ArmGicArchSecLib.inf
   PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
   PrePiLib|EmbeddedPkg/Library/PrePiLib/PrePiLib.inf
@@ -375,16 +371,11 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   gEfiMdePkgTokenSpaceGuid.PcdDriverDiagnosticsDisable|TRUE
   gEfiMdePkgTokenSpaceGuid.PcdDriverDiagnostics2Disable|TRUE
 
-  # Use the Vector Table location in CpuDxe. We will not copy the Vector Table at PcdCpuVectorBaseAddress
-  gArmTokenSpaceGuid.PcdRelocateVectorTable|FALSE
-
   gEmbeddedTokenSpaceGuid.PcdPrePiProduceMemoryTypeInformationHob|TRUE
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdTurnOffUsbLegacySupport|TRUE
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
-
-  gArmTokenSpaceGuid.PcdArmGicV3WithV2Legacy|FALSE
 
   #  If TRUE, Graphics Output Protocol will be installed on virtual handle created by ConsplitterDxe.
   #  It could be set FALSE to save size.
@@ -470,7 +461,8 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLangCodes|"en-US"
 
 [PcdsDynamicHii.common.DEFAULT]
-  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|L"Timeout"|gEfiGlobalVariableGuid|0x0|10 # Variable: L"Timeout"
+  gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|L"Timeout"|gEfiGlobalVariableGuid|0x0|5 # Variable: L"Timeout"
+  gEfiMdeModulePkgTokenSpaceGuid.PcdBootDiscoveryPolicy|L"BootDiscoveryPolicy"|gBootDiscoveryPolicyMgrFormsetGuid|0x0|2 # Connect All
 
 ################################################################################
 #
@@ -524,7 +516,7 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   EmbeddedPkg/RealTimeClockRuntimeDxe/RealTimeClockRuntimeDxe.inf {
   <LibraryClasses>
 !if $(RK_RTC8563_ENABLE) == TRUE
-    RealTimeClockLib|Silicon/NXP/Library/Pcf8563RealTimeClockLib/Pcf8563RealTimeClockLib.inf
+    RealTimeClockLib|Silicon/Rockchip/Library/Pcf8563RealTimeClockLib/Pcf8563RealTimeClockLib.inf
 !else
     RealTimeClockLib|EmbeddedPkg/Library/VirtualRealTimeClockLib/VirtualRealTimeClockLib.inf
 !endif
@@ -580,7 +572,7 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   #
   # Arm GIC
   #
-  ArmPkg/Drivers/ArmGic/ArmGicDxe.inf
+  ArmPkg/Drivers/ArmGicDxe/ArmGicV3Dxe.inf
 
   #
   # Timer
@@ -622,13 +614,14 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
 !if $(RK_PCA9555_ENABLE) == TRUE
   Silicon/Rockchip/Drivers/Pca9555Dxe/Pca9555Dxe.inf
 !endif
-  # Silicon/Rockchip/Drivers/I2c/I2cDemoDxe/I2cDemoDxe.inf
 
   #
   # Display Support
   #
   Silicon/Rockchip/Drivers/Vop2Dxe/Vop2Dxe.inf
-  # Silicon/Rockchip/Library/DisplayLib/AnalogixDpLib.inf
+!if $(RK_ANALOGIX_DP_ENABLE) == TRUE
+  Silicon/Rockchip/Library/DisplayLib/AnalogixDpLib.inf
+!endif
 !if $(RK_DW_HDMI_QP_ENABLE) == TRUE
   Silicon/Rockchip/Library/DisplayLib/DwHdmiQpLib.inf
 !endif
@@ -719,9 +712,15 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
 !include NetworkPkg/Network.dsc.inc
 
 !if $(NETWORK_ENABLE) == TRUE
+  #
+  # Network Stack Configuration Driver
+  #
+  Silicon/Rockchip/Drivers/NetworkStackConfigDxe/NetworkStackConfigDxe.inf
 
 !if $(NETWORK_SNP_ENABLE) == TRUE
   NetworkPkg/SnpDxe/SnpDxe.inf {
+    <LibraryClasses>
+      NULL|Silicon/Rockchip/Drivers/NetworkStackConfigDxe/NetworkStackEnabledLib.inf
     <PcdsFixedAtBuild>
 !if $(DEBUG_PRINT_INFO_MODULE_EXCLUDE) & $(DEBUG_MODULE_SNPDXE)
       gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|$(DEBUG_PRINT_ERROR_LEVEL_NO_INFO)
@@ -730,11 +729,41 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
 !endif
 
   NetworkPkg/MnpDxe/MnpDxe.inf {
+    <LibraryClasses>
+      NULL|Silicon/Rockchip/Drivers/NetworkStackConfigDxe/NetworkStackEnabledLib.inf
     <PcdsFixedAtBuild>
 !if $(DEBUG_PRINT_INFO_MODULE_EXCLUDE) & $(DEBUG_MODULE_MNPDXE)
       gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|$(DEBUG_PRINT_ERROR_LEVEL_NO_INFO)
 !endif
   }
+
+!if $(NETWORK_IP4_ENABLE) == TRUE
+  NetworkPkg/Ip4Dxe/Ip4Dxe.inf {
+    <LibraryClasses>
+      NULL|Silicon/Rockchip/Drivers/NetworkStackConfigDxe/NetworkStackIpv4EnabledLib.inf
+  }
+!endif
+
+!if $(NETWORK_IP6_ENABLE) == TRUE
+  NetworkPkg/Ip6Dxe/Ip6Dxe.inf {
+    <LibraryClasses>
+      NULL|Silicon/Rockchip/Drivers/NetworkStackConfigDxe/NetworkStackIpv6EnabledLib.inf
+  }
+!endif
+
+!if $(NETWORK_PXE_BOOT_ENABLE) == TRUE
+  NetworkPkg/UefiPxeBcDxe/UefiPxeBcDxe.inf {
+    <LibraryClasses>
+      NULL|Silicon/Rockchip/Drivers/NetworkStackConfigDxe/NetworkStackPxeBootEnabledLib.inf
+  }
+!endif
+
+!if $(NETWORK_HTTP_BOOT_ENABLE) == TRUE
+  NetworkPkg/HttpBootDxe/HttpBootDxe.inf {
+    <LibraryClasses>
+      NULL|Silicon/Rockchip/Drivers/NetworkStackConfigDxe/NetworkStackHttpBootEnabledLib.inf
+  }
+!endif
 
   #
   # Realtek PCIe UNDI Driver
@@ -745,11 +774,6 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   # Realtek USB UNDI Driver
   #
   Drivers/Realtek/Bus/Usb/UsbNetworking/RtkUsbUndiDxe.inf
-
-  #
-  # AX88772 Ethernet Driver for Apple Ethernet Adapter
-  #
-  Drivers/ASIX/Bus/Usb/UsbNetworking/Ax88772c/Ax88772c.inf
 !endif
 
   #
@@ -760,12 +784,14 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   #
   # Bds
   #
+  MdeModulePkg/Universal/BootManagerPolicyDxe/BootManagerPolicyDxe.inf
   MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
   MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe.inf
   MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
   MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
   MdeModulePkg/Application/UiApp/UiApp.inf {
     <LibraryClasses>
+      NULL|MdeModulePkg/Library/BootDiscoveryPolicyUiLib/BootDiscoveryPolicyUiLib.inf
       NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf
       NULL|MdeModulePkg/Library/BootManagerUiLib/BootManagerUiLib.inf
       NULL|MdeModulePkg/Library/BootMaintenanceManagerUiLib/BootMaintenanceManagerUiLib.inf
@@ -785,7 +811,6 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
       NULL|ShellPkg/Library/UefiShellDriver1CommandsLib/UefiShellDriver1CommandsLib.inf
       NULL|ShellPkg/Library/UefiShellDebug1CommandsLib/UefiShellDebug1CommandsLib.inf
       NULL|ShellPkg/Library/UefiShellInstall1CommandsLib/UefiShellInstall1CommandsLib.inf
-      NULL|Silicon/Rockchip/Applications/I2cDemoTest/I2cDemoTest.inf
       NULL|Silicon/Rockchip/Applications/SpiTool/SpiFlashCmd.inf
       NULL|ShellPkg/Library/UefiShellNetwork1CommandsLib/UefiShellNetwork1CommandsLib.inf
       NULL|ShellPkg/Library/UefiShellAcpiViewCommandLib/UefiShellAcpiViewCommandLib.inf
@@ -801,12 +826,6 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
 !ifdef $(INCLUDE_TFTP_COMMAND)
   ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand.inf
 !endif #$(INCLUDE_TFTP_COMMAND)
-
-  # I2C Demo application
-  # Silicon/Rockchip/Applications/I2cDemoTest/I2cDemoTest.inf
-
-  # SPI Flash Cmd application
-  # Silicon/Rockchip/Applications/SpiTool/SpiFlashCmd.inf
 
   # Maskrom Reset application
   Silicon/Rockchip/Applications/MaskromReset/MaskromReset.inf

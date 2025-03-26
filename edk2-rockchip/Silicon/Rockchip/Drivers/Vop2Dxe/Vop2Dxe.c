@@ -399,22 +399,6 @@ STATIC UINT8  RK3568Vop2VpPrimaryPlaneOrder[VOP2_VP_MAX] = {
 
 STATIC UINT32  mRegsBackup[RK3568_MAX_REG] = { 0 };
 
-STATIC CHAR8  *mDisplayIfName[] = {
-  " RGB",
-  " BT1120",
-  " BT656",
-  " LVDS0",
-  " LVDS1",
-  " MIPI0",
-  " MIPI1",
-  " eDP0",
-  " eDP1",
-  " DP0",
-  " DP1",
-  " HDMI0",
-  " HDMI1"
-};
-
 STATIC VOP2  *RockchipVop2;
 
 INLINE
@@ -1357,7 +1341,7 @@ Vop2IfConfig (
     }
   }
 
-  if (OutputIf & VOP_OUTPUT_IF_eDP0) {
+  if (OutputIf & VOP_OUTPUT_IF_EDP0) {
     Vop2MaskWrite (
       Vop2->BaseAddress,
       RK3568_DSP_IF_EN,
@@ -1400,7 +1384,7 @@ Vop2IfConfig (
       );
   }
 
-  if (OutputIf & VOP_OUTPUT_IF_eDP1) {
+  if (OutputIf & VOP_OUTPUT_IF_EDP1) {
     Vop2MaskWrite (
       Vop2->BaseAddress,
       RK3568_DSP_IF_EN,
@@ -2107,25 +2091,6 @@ Vop2SetClk (
   return EFI_SUCCESS;
 }
 
-STATIC
-CHAR8 *
-GetOutputIfName (
-  IN UINT32  OutputIf
-  )
-{
-  INT32  i     = 0;
-  INT32  Shift = 0;
-
-  for (i = 0; i < VOP_OUTPUT_IF_NUMS; i++) {
-    Shift = 1 << i;
-    if (OutputIf & Shift) {
-      return mDisplayIfName[i];
-    }
-  }
-
-  return mDisplayIfName[0];
-}
-
 EFI_STATUS
 Vop2PreInit (
   IN  ROCKCHIP_CRTC_PROTOCOL  *This,
@@ -2569,6 +2534,38 @@ Vop2DscEnable (
     ));
 }
 
+STATIC
+VOID
+Vop2ModeFixup (
+  OUT DISPLAY_STATE  *DisplayState
+  )
+{
+  CONNECTOR_STATE   *ConnectorState = &DisplayState->ConnectorState;
+  CRTC_STATE        *CrtcState      = &DisplayState->CrtcState;
+  DRM_DISPLAY_MODE  *Mode           = &ConnectorState->DisplayMode;
+
+  /*
+   * HActive of the video timing must be 4-pixel aligned.
+   */
+  if (Mode->CrtcHDisplay % 4 != 0) {
+    UINT32  OldHDisplay = Mode->CrtcHDisplay;
+    UINT32  AlignOffset = 4 - (Mode->CrtcHDisplay % 4);
+
+    Mode->CrtcHDisplay   += AlignOffset;
+    Mode->CrtcHSyncStart += AlignOffset;
+    Mode->CrtcHSyncEnd   += AlignOffset;
+    Mode->CrtcHTotal     += AlignOffset;
+
+    DEBUG ((
+      DEBUG_WARN,
+      "WARN: VP%d: HActive must be 4-pixel aligned: %u -> %u\n",
+      CrtcState->CrtcID,
+      OldHDisplay,
+      Mode->CrtcHDisplay
+      ));
+  }
+}
+
 EFI_STATUS
 Vop2Init (
   IN  ROCKCHIP_CRTC_PROTOCOL  *This,
@@ -2589,6 +2586,8 @@ Vop2Init (
   BOOLEAN           YUVOverlay;
   UINT64            DclkRate;
 
+  Vop2ModeFixup (DisplayState);
+
   HSyncLen  = Mode->CrtcHSyncEnd - Mode->CrtcHSyncStart;
   HDisplay  = Mode->CrtcHDisplay;
   HTotal    = Mode->CrtcHTotal;
@@ -2603,12 +2602,12 @@ Vop2Init (
 
   DEBUG ((
     DEBUG_INIT,
-    "[INIT]VOP update mode to: %dx%d%a%d, type:%a for VP%d\n",
+    "[INIT]VOP update mode to: %dx%d%a%d, type: %a for VP%d\n",
     Mode->HDisplay,
     Mode->VDisplay,
     Mode->Flags & DRM_MODE_FLAG_INTERLACE ? "i" : "p",
-    Mode->VScan,
-    GetOutputIfName (ConnectorState->OutputInterface),
+    Mode->VRefresh,
+    GetVopOutputIfName (ConnectorState->OutputInterface),
     CrtcState->CrtcID
     ));
 
@@ -2837,7 +2836,21 @@ Vop2Init (
     }
   }
 
-  Vop2SetClk (CrtcState->CrtcID, DclkRate * 1000);
+  /*
+   * Switch VP DCLK source to the HDMI PHY PLL when HDMI output is enabled,
+   * as it's more accurate and necessary for most modes up to 4K @ 60 Hz.
+   */
+  /* todo: only support VP2 for now */
+  ASSERT (CrtcState->CrtcID == 2);
+  if (HAL_CRU_ClkGetMux (DCLK_VOP2) == DCLK_VOP2_SEL_DCLK_VOP2_SRC) {
+    if (ConnectorState->OutputInterface & VOP_OUTPUT_IF_HDMI0) {
+      HAL_CRU_ClkSetMux (DCLK_VOP2, DCLK_VOP2_SEL_CLK_HDMIPHY_PIXEL0_O);
+    } else if (ConnectorState->OutputInterface & VOP_OUTPUT_IF_HDMI1) {
+      HAL_CRU_ClkSetMux (DCLK_VOP2, DCLK_VOP2_SEL_CLK_HDMIPHY_PIXEL1_O);
+    } else {
+      Vop2SetClk (CrtcState->CrtcID, DclkRate * 1000);
+    }
+  }
 
   Vop2MaskWrite (
     Vop2->BaseAddress,

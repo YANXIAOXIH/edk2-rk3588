@@ -9,19 +9,6 @@
 / {
 	model = "LemonPi Pi1";
 	compatible = "lemonpi,rk3588-lemonpi-pi1", "rockchip,rk3588";
-
-	fan: pwm-fan {
-		compatible = "pwm-fan";
-		#cooling-cells = <2>;
-		pwms = <&pwm4 0 5000 0>;
-		cooling-levels = <0 100 150 200 255>;
-		rockchip,temp-trips = <
-			50000	1
-			55000	2
-			60000	3
-			65000	4
-		>;
-	};
 };
 
 &combphy0_ps { /* Mini-PCIe/SATA3.0-PCIe (x1) Combo PHY */

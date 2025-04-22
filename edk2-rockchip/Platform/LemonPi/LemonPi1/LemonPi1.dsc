@@ -13,7 +13,7 @@
 #
 ################################################################################
 [Defines]
-  PLATFORM_NAME                  = LemonPi1
+  PLATFORM_NAME                  = LemonPi
   PLATFORM_VENDOR                = LemonPi
   PLATFORM_GUID                  = 6bb03dd4-c246-474a-851c-70ea24a89e43
   PLATFORM_VERSION               = 0.2
@@ -58,11 +58,11 @@
 
 [PcdsFixedAtBuild.common]
   # SMBIOS platform config
-  gRockchipTokenSpaceGuid.PcdPlatformName|"LemonPi Pi1"
+  gRockchipTokenSpaceGuid.PcdPlatformName|"LemonPi"
   gRockchipTokenSpaceGuid.PcdPlatformVendorName|"LemonPi"
-  gRockchipTokenSpaceGuid.PcdFamilyName|"LemonPi Pi1"
+  gRockchipTokenSpaceGuid.PcdFamilyName|"LemonPi"
   gRockchipTokenSpaceGuid.PcdProductUrl|"https://github.com/YANXIAOXIH/SOM3588Cat-Armbian"
-  gRockchipTokenSpaceGuid.PcdDeviceTreeName|"rk3588-lemonpi-pi1"
+  gRockchipTokenSpaceGuid.PcdDeviceTreeName|"rk3588-lemonpi"
 
   # I2C
   gRockchipTokenSpaceGuid.PcdI2cSlaveAddresses|{ 0x42, 0x43, 0x51 }

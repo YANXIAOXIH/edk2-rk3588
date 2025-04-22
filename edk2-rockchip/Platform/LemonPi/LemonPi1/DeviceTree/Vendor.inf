@@ -14,4 +14,4 @@
   VERSION_STRING                 = 1.0
 
 [Binaries]
-  BIN|devicetree/vendor/rk3588-lemonpi-pi1.dtb
+  BIN|devicetree/vendor/rk3588-lemonpi.dtb

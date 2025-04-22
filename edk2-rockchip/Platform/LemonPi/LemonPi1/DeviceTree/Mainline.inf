@@ -14,7 +14,7 @@
   VERSION_STRING                 = 1.0
 
 [Sources]
-  devicetree/mainline/rk3588-lemonpi-pi1.dts
+  devicetree/mainline/rk3588-lemonpi.dts
   
 [Packages]
   MdePkg/MdePkg.dec

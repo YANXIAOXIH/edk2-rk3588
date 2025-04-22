@@ -9,7 +9,6 @@
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-#include <dt-bindings/leds/common.h>
 #include <dt-bindings/pinctrl/rockchip.h>
 #include <dt-bindings/soc/rockchip,vop2.h>
 #include <dt-bindings/usb/pd.h>
@@ -1045,6 +1044,13 @@
 /* SATA30/PCIe20x1_2 Combo PHY */
 &combphy0_ps {
 	status = "okay";
+};
+
+// Mini-PCIe
+&pcie2x1l2 {
+	reset-gpios = <&gpio3 RK_PD1 GPIO_ACTIVE_HIGH>;
+	disable-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+	status = "disabled";
 };
 
 // SATA-PCIe

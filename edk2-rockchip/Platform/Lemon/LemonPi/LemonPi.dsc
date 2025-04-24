@@ -1,11 +1,9 @@
 ## @file
 #
-#  Copyright (c) 2014-2018, Linaro Limited. All rights reserved.
-#  Copyright (c) 2023-2024, Mario Bălănică <mariobalanica02@gmail.com>
+#  LemonPi Platform Description File
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
-##
 
 ################################################################################
 #
@@ -28,7 +26,7 @@
   RK_PLATFORM_FVMAIN_MODULES     = $(PLATFORM_DIRECTORY)/$(PLATFORM_NAME).Modules.fdf.inc
 
   # GMAC is not exposed
-  DEFINE RK3588_GMAC_ENABLE = FALSE
+  DEFINE RK3588_GMAC_ENABLE = TRUE
 
   #
   # HYM8563 RTC support

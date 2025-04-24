@@ -17,6 +17,7 @@
 #include <Soc.h>
 #include <VarStoreData.h>
 
+// PMIC 初始化数据
 static struct regulator_init_data  rk806_init_data[] = {
   /* Master PMIC */
   RK8XX_VOLTAGE_INIT (MASTER_BUCK1,  750000),
@@ -44,6 +45,7 @@ static struct regulator_init_data  rk806_init_data[] = {
   /* No dual PMICs on this platform */
 };
 
+// 初始化 microSD 卡插槽
 VOID
 EFIAPI
 SdmmcIoMux (
@@ -56,6 +58,7 @@ SdmmcIoMux (
   PMU1_IOC->GPIO0A_IOMUX_SEL_H = (0x000FUL << 16) | (0x0001); // SDMMC_DET
 }
 
+// 初始化 eMMC
 VOID
 EFIAPI
 SdhciEmmcIoMux (
@@ -86,6 +89,7 @@ Rk806SpiIomux (
   MmioWrite32 (NS_CRU_BASE + CRU_CLKSEL_CON59, (0x00C0UL << 16) | 0x0080);
 }
 
+// 初始化 PMIC
 VOID
 EFIAPI
 Rk806Configure (
@@ -203,6 +207,7 @@ I2cIomux (
   }
 }
 
+// 初始化 USB 端口电源
 VOID
 EFIAPI
 UsbPortPowerEnable (
@@ -210,16 +215,12 @@ UsbPortPowerEnable (
   )
 {
   DEBUG ((DEBUG_INFO, "UsbPortPowerEnable called\n"));
-
-  /* vcc5v0_host_en */
-  GpioPinWrite (3, GPIO_PIN_PB7, TRUE);
-  GpioPinSetDirection (3, GPIO_PIN_PB7, GPIO_PIN_OUTPUT);
-
-  /* typec5v_pwren */
-  GpioPinWrite (4, GPIO_PIN_PB0, TRUE);
-  GpioPinSetDirection (4, GPIO_PIN_PB0, GPIO_PIN_OUTPUT);
+  /* typec_pwren */
+  GpioPinWrite (2, GPIO_PIN_PB5, TRUE);// Type-C 电源使能
+  GpioPinSetDirection (2, GPIO_PIN_PB5, GPIO_PIN_OUTPUT);
 }
 
+// 恢复 USB PHY
 VOID
 EFIAPI
 Usb2PhyResume (
@@ -240,35 +241,15 @@ PcieIoInit (
   UINT32  Segment
   )
 {
-  /* Set reset and power IO to gpio output mode */
   switch (Segment) {
-    case PCIE_SEGMENT_PCIE30X4: // M.2 M Key
-      /* reset */
-      GpioPinSetDirection (4, GPIO_PIN_PB6, GPIO_PIN_OUTPUT);
-      /* vcc3v3_pcie30 */
-      GpioPinSetDirection (2, GPIO_PIN_PB6, GPIO_PIN_OUTPUT);
+    case PCIE_SEGMENT_PCIE30X4:
+      GpioPinWrite (1, GPIO_PIN_PB2,  GPIO_PIN_OUTPUT);
       break;
-    case PCIE_SEGMENT_PCIE20L0: // M.2 A+E Key
-      /* reset */
-      GpioPinSetDirection (4, GPIO_PIN_PA5, GPIO_PIN_OUTPUT);
-      /* vcc3v3_pcie2x1l0 */
-      GpioPinSetDirection (2, GPIO_PIN_PC5, GPIO_PIN_OUTPUT);
-      break;
-    case PCIE_SEGMENT_PCIE20L1: // RTL8125B
-      /* reset */
-      GpioPinSetDirection (3, GPIO_PIN_PB3, GPIO_PIN_OUTPUT);
-      break;
-    case PCIE_SEGMENT_PCIE20L2: // RTL8125B
-      /* reset */
-      GpioPinSetDirection (4, GPIO_PIN_PA2, GPIO_PIN_OUTPUT);
+    case PCIE_SEGMENT_PCIE20L0:
+      GpioPinWrite (4, GPIO_PIN_PA5,  GPIO_PIN_OUTPUT);
       break;
     default:
       break;
-  }
-
-  if ((Segment == PCIE_SEGMENT_PCIE20L1) || (Segment == PCIE_SEGMENT_PCIE20L2)) {
-    /* vcc3v3_pcie_eth */
-    GpioPinSetDirection (3, GPIO_PIN_PB4, GPIO_PIN_OUTPUT);
   }
 }
 
@@ -278,23 +259,9 @@ PciePowerEn (
   UINT32   Segment,
   BOOLEAN  Enable
   )
-{
-  switch (Segment) {
-    case PCIE_SEGMENT_PCIE30X4:
-      GpioPinWrite (2, GPIO_PIN_PB6, Enable);
-      break;
-    case PCIE_SEGMENT_PCIE20L0:
-      GpioPinWrite (2, GPIO_PIN_PC5, Enable);
-      break;
-    case PCIE_SEGMENT_PCIE20L1:
-    case PCIE_SEGMENT_PCIE20L2:
-      /* Yes, disabling one would disable the other as well. */
-      GpioPinWrite (3, GPIO_PIN_PB4, !Enable);
-      break;
-    default:
-      break;
+  {
+  /* nothing to power on */
   }
-}
 
 VOID
 EFIAPI
@@ -305,16 +272,13 @@ PciePeReset (
 {
   switch (Segment) {
     case PCIE_SEGMENT_PCIE30X4:
-      GpioPinWrite (4, GPIO_PIN_PB6, !Enable);
+      GpioPinWrite (1, GPIO_PIN_PB2, !Enable);
       break;
     case PCIE_SEGMENT_PCIE20L0:
       GpioPinWrite (4, GPIO_PIN_PA5, !Enable);
       break;
-    case PCIE_SEGMENT_PCIE20L1:
-      GpioPinWrite (3, GPIO_PIN_PB3, !Enable);
-      break;
-    case PCIE_SEGMENT_PCIE20L2:
-      GpioPinWrite (4, GPIO_PIN_PA2, !Enable);
+    case PCIE_SEGMENT_SATA0:
+      GpioPinWrite (3, GPIO_PIN_PD1, !Enable);
       break;
     default:
       break;
@@ -351,25 +315,28 @@ HdmiTxIomux (
   }
 }
 
-PWM_DATA  pwm_data = {
-  .ControllerID = PWM_CONTROLLER0,
-  .ChannelID    = PWM_CHANNEL3,
-  .PeriodNs     = 4000000,
-  .DutyNs       = 4000000,
+// PWM 风扇配置
+PWM_DATA pwm_data = {
+  .ControllerID = PWM_CONTROLLER4, // 对应设备树中的 pwm4
+  .ChannelID    = PWM_CHANNEL0,    // 对应设备树中的通道 0
+  .PeriodNs     = 4000000,           // 50kHz (1/50kHz = 20µs = 20000ns)
+  .DutyNs       = 2000000,           // 50% 占空比
   .Polarity     = FALSE,
-}; // PWM0_CH3
+};
 
+// 初始化 PWM 风扇
 VOID
 EFIAPI
 PwmFanIoSetup (
   VOID
   )
-{
-  GpioPinSetFunction (3, GPIO_PIN_PB2, 0xB); // PWM3_IR_M1
-  RkPwmSetConfig (&pwm_data);
-  RkPwmEnable (&pwm_data);
-}
+  {
+    GpioPinSetFunction (4, GPIO_PIN_PWM4, 0xB); // 配置 GPIO 为 PWM4 功能
+    RkPwmSetConfig(&pwm_data);                 // 设置 PWM 配置
+    RkPwmEnable(&pwm_data);                    // 启用 PWM
+  }
 
+// 设置风扇速度
 VOID
 EFIAPI
 PwmFanSetSpeed (
@@ -380,6 +347,7 @@ PwmFanSetSpeed (
   RkPwmSetConfig (&pwm_data);
 }
 
+// 初始化系统状态 LED
 VOID
 EFIAPI
 PlatformInitLeds (
@@ -387,30 +355,21 @@ PlatformInitLeds (
   )
 {
   /* Status indicator */
-  GpioPinWrite (3, GPIO_PIN_PA6, FALSE);
-  GpioPinSetDirection (3, GPIO_PIN_PA6, GPIO_PIN_OUTPUT);
+  GpioPinWrite (0, GPIO_PIN_PD3, FALSE); // 关闭 LED
+  GpioPinSetDirection (0, GPIO_PIN_PD3, GPIO_PIN_OUTPUT);
 }
 
+// 设置系统状态 LED
 VOID
 EFIAPI
 PlatformSetStatusLed (
   IN BOOLEAN  Enable
   )
 {
-  GpioPinWrite (3, GPIO_PIN_PA6, Enable);
+  GpioPinWrite (0, GPIO_PIN_PD3, Enable);
 }
 
-VOID
-EFIAPI
-PlatformWiFiEnable (
-  IN BOOLEAN  Enable
-  )
-{
-  // WiFi - enable
-  GpioPinWrite (0, GPIO_PIN_PC4, Enable);
-  GpioPinSetDirection (0, GPIO_PIN_PC4, GPIO_PIN_OUTPUT);
-}
-
+// 获取设备树文件 GUID
 CONST EFI_GUID *
 EFIAPI
 PlatformGetDtbFileGuid (
@@ -436,6 +395,7 @@ PlatformGetDtbFileGuid (
   return NULL;
 }
 
+// 平台早期初始化
 VOID
 EFIAPI
 PlatformEarlyInit (
@@ -445,5 +405,7 @@ PlatformEarlyInit (
   // Configure various things specific to this platform
   PlatformWiFiEnable (TRUE);
 
-  GpioPinSetFunction (1, GPIO_PIN_PD3, 0); // jdet
+  GpioPinSetFunction (1, GPIO_PIN_PD5, 0); // jdet
+  PlatformInitLeds();
+  PwmFanIoSetup();
 }

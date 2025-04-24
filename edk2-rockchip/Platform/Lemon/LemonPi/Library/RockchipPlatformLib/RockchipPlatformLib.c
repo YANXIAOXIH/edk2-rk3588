@@ -277,9 +277,6 @@ PciePeReset (
     case PCIE_SEGMENT_PCIE20L0:
       GpioPinWrite (4, GPIO_PIN_PA5, !Enable);
       break;
-    case PCIE_SEGMENT_SATA0:
-      GpioPinWrite (3, GPIO_PIN_PD1, !Enable);
-      break;
     default:
       break;
   }
@@ -315,12 +312,11 @@ HdmiTxIomux (
   }
 }
 
-// PWM 风扇配置
-PWM_DATA pwm_data = {
-  .ControllerID = PWM_CONTROLLER4, // 对应设备树中的 pwm4
-  .ChannelID    = PWM_CHANNEL0,    // 对应设备树中的通道 0
-  .PeriodNs     = 4000000,           // 50kHz (1/50kHz = 20µs = 20000ns)
-  .DutyNs       = 2000000,           // 50% 占空比
+PWM_DATA  pwm_data = {
+  .ControllerID = PWM_CONTROLLER0,
+  .ChannelID    = PWM_CHANNEL3,
+  .PeriodNs     = 4000000,
+  .DutyNs       = 4000000,
   .Polarity     = FALSE,
 };
 
@@ -331,9 +327,9 @@ PwmFanIoSetup (
   VOID
   )
   {
-    GpioPinSetFunction (4, GPIO_PIN_PWM4, 0xB); // 配置 GPIO 为 PWM4 功能
-    RkPwmSetConfig(&pwm_data);                 // 设置 PWM 配置
-    RkPwmEnable(&pwm_data);                    // 启用 PWM
+    GpioPinSetFunction (3, GPIO_PIN_PB2, 0xB); // PWM3_IR_M1
+    RkPwmSetConfig (&pwm_data);
+    RkPwmEnable (&pwm_data);
   }
 
 // 设置风扇速度
@@ -406,6 +402,4 @@ PlatformEarlyInit (
   PlatformWiFiEnable (TRUE);
 
   GpioPinSetFunction (1, GPIO_PIN_PD5, 0); // jdet
-  PlatformInitLeds();
-  PwmFanIoSetup();
 }

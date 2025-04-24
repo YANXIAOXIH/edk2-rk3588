@@ -34,11 +34,11 @@ DefinitionBlock ("Dsdt.aml", "DSDT", 2, "RKCP  ", "RK3588  ", 2)
     include ("Emmc.asl")
     include ("Sdhc.asl")
     include ("Dma.asl")
-    include ("Gmac.asl") // 启用 GMAC 支持
+    //include ("Gmac.asl") // 启用 GMAC 支持
     include ("Gpio.asl")
     include ("I2c.asl")
     include ("Uart.asl")
-    include ("Spi.asl") // 启用 SPI 支持
+    //include ("Spi.asl") // 启用 SPI 支持
 
     include ("I2s.asl")
 

@@ -57,7 +57,7 @@
 [PcdsFixedAtBuild.common]
   # SMBIOS platform config
   gRockchipTokenSpaceGuid.PcdPlatformName|"LemonPi"
-  gRockchipTokenSpaceGuid.PcdPlatformVendorName|"Pi"
+  gRockchipTokenSpaceGuid.PcdPlatformVendorName|"LemonPi"
   gRockchipTokenSpaceGuid.PcdFamilyName|"LemonPi"
   gRockchipTokenSpaceGuid.PcdProductUrl|"https://github.com/YANXIAOXIH/SOM3588Cat-Armbian"
   gRockchipTokenSpaceGuid.PcdDeviceTreeName|"rk3588-lemonpi"

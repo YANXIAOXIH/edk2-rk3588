@@ -362,10 +362,20 @@ PlatformSetStatusLed (
   IN BOOLEAN  Enable
   )
 {
-  GpioPinWrite (0, GPIO_PIN_PD3, Enable);
+  GpioPinWrite (3, GPIO_PIN_PA6, Enable);
 }
 
-// 获取设备树文件 GUID
+VOID
+EFIAPI
+PlatformWiFiEnable (
+  IN BOOLEAN  Enable
+  )
+{
+  // WiFi - enable
+  GpioPinWrite (0, GPIO_PIN_PC4, Enable);
+  GpioPinSetDirection (0, GPIO_PIN_PC4, GPIO_PIN_OUTPUT);
+}
+
 CONST EFI_GUID *
 EFIAPI
 PlatformGetDtbFileGuid (
@@ -399,5 +409,7 @@ PlatformEarlyInit (
   )
 {
   // Configure various things specific to this platform
+  PlatformWiFiEnable (TRUE);
+
   GpioPinSetFunction (1, GPIO_PIN_PD5, 0); // jdet
 }

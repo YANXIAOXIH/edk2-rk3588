@@ -300,7 +300,7 @@ HdmiTxIomux (
 }
 
 PWM_DATA  pwm_data = {
-  .ControllerID = PWM_CONTROLLER4,
+  .ControllerID = PWM_CONTROLLER1,
   .ChannelID    = PWM_CHANNEL0,
   .PeriodNs     = 20000,
   .DutyNs       = 20000,
@@ -313,7 +313,7 @@ PwmFanIoSetup (
   VOID
   )
 {
-  GpioPinSetFunction (1, GPIO_PIN_PC4, 1); // PWM3_IR_M1
+  GpioPinSetFunction (1, GPIO_PIN_PC4, 2); // PWM3_IR_M1
   RkPwmSetConfig (&pwm_data);
   RkPwmEnable (&pwm_data);
 }
@@ -395,3 +395,4 @@ PlatformEarlyInit (
 
   GpioPinSetFunction (1, GPIO_PIN_PD3, 0); // jdet
 }
+

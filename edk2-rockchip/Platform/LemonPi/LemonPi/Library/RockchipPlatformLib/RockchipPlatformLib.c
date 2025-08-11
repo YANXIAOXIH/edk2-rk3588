@@ -125,6 +125,14 @@ NorFspiIomux (
 
 VOID
 EFIAPI
+NorFspiEnableClock (
+  UINT32  *CruBase
+  )
+{
+}
+
+VOID
+EFIAPI
 GmacIomux (
   IN UINT32  Id
   )
@@ -395,4 +403,3 @@ PlatformEarlyInit (
 
   GpioPinSetFunction (1, GPIO_PIN_PD3, 0); // jdet
 }
-

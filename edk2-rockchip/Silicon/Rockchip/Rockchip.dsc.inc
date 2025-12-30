@@ -66,6 +66,16 @@
   DEFINE DEBUG_PROPERTY_MASK             = 0x0f
 !endif
 
+  #
+  # Default support flags
+  #
+!ifndef RK_X86_EMULATOR_ENABLE
+  DEFINE RK_X86_EMULATOR_ENABLE         = TRUE
+!endif
+!ifndef RK_AMD_GOP_ENABLE
+  DEFINE RK_AMD_GOP_ENABLE              = TRUE
+!endif
+
 ################################################################################
 #
 # Library Class section - list of all common Library Classes needed by Rockchip platforms.
@@ -127,11 +137,6 @@
   # SCMI Mailbox Transport Layer
   ArmMtlLib|Silicon/Rockchip/Library/RkMtlLib/RkMtlLib.inf
 
-  # SMC/HVC dependencies
-  ArmSmcLib|ArmPkg/Library/ArmSmcLib/ArmSmcLib.inf
-  ArmHvcLib|ArmPkg/Library/ArmHvcLib/ArmHvcLib.inf
-  ArmMonitorLib|ArmPkg/Library/ArmMonitorLib/ArmMonitorLib.inf
-
   #
   # Secure Boot dependencies
   #
@@ -168,9 +173,11 @@
   CacheMaintenanceLib|ArmPkg/Library/ArmCacheMaintenanceLib/ArmCacheMaintenanceLib.inf
   DefaultExceptionHandlerLib|ArmPkg/Library/DefaultExceptionHandlerLib/DefaultExceptionHandlerLib.inf
   CpuExceptionHandlerLib|ArmPkg/Library/ArmExceptionLib/ArmExceptionLib.inf
-  ArmSmcLib|ArmPkg/Library/ArmSmcLib/ArmSmcLib.inf
-  ArmMmuLib|ArmPkg/Library/ArmMmuLib/ArmMmuBaseLib.inf
+  ArmSmcLib|MdePkg/Library/ArmSmcLib/ArmSmcLib.inf
+  ArmMonitorLib|ArmPkg/Library/ArmMonitorLib/ArmMonitorLib.inf
+  ArmMmuLib|UefiCpuPkg/Library/ArmMmuLib/ArmMmuBaseLib.inf
   ArmLib|ArmPkg/Library/ArmLib/ArmBaseLib.inf
+  ArmTransferListLib|ArmPkg/Library/ArmTransferListLib/ArmTransferListLib.inf
   TimerLib|ArmPkg/Library/ArmArchTimerLib/ArmArchTimerLib.inf
 
   # UART libraries
@@ -196,7 +203,7 @@
   SemihostLib|ArmPkg/Library/SemihostLib/SemihostLib.inf
 
   # Flattened Device Tree (FDT) access library
-  FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
+  FdtLib|MdePkg/Library/BaseFdtLib/BaseFdtLib.inf
 
   VarCheckLib|MdeModulePkg/Library/VarCheckLib/VarCheckLib.inf
   VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
@@ -284,10 +291,8 @@
 
   PeiServicesTablePointerLib|ArmPkg/Library/PeiServicesTablePointerLib/PeiServicesTablePointerLib.inf
 
-  ## Fixed compile error after upgrade to 14.10
   PlatformPeiLib|ArmPlatformPkg/PlatformPei/PlatformPeiLib.inf
   PcdLib|MdePkg/Library/PeiPcdLib/PeiPcdLib.inf
-  ArmMmuLib|ArmPkg/Library/ArmMmuLib/ArmMmuPeiLib.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
 
 [LibraryClasses.common.DXE_CORE]
@@ -434,7 +439,6 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   # Set timer interrupt to be triggerred in 1ms to avoid missing
   # serial terminal input characters.
   gEmbeddedTokenSpaceGuid.PcdTimerPeriod|10000
-  gArmTokenSpaceGuid.PcdVFPEnabled|1
   gEfiMdePkgTokenSpaceGuid.PcdUartDefaultReceiveFifoDepth|32
 
   #
@@ -478,6 +482,7 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   ArmPlatformPkg/PeilessSec/PeilessSec.inf {
     <LibraryClasses>
       NULL|MdeModulePkg/Library/LzmaCustomDecompressLib/LzmaCustomDecompressLib.inf
+      PeilessSecMeasureLib|SecurityPkg/Library/PeilessSecMeasureLib/PeilessSecMeasureLibNull.inf
   }
 
   #
@@ -628,6 +633,12 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   Silicon/Rockchip/Library/DisplayLib/DwDpLib.inf
   Silicon/Rockchip/Library/DisplayLib/DwMipiDsi2Lib.inf
   Silicon/Rockchip/Drivers/LcdGraphicsOutputDxe/LcdGraphicsOutputDxe.inf
+
+!if $(RK_AMD_GOP_ENABLE) == TRUE
+  Drivers/AMD/Gop/AmdGopOpRomOverrideDxe.inf
+  Drivers/AMD/Gop/AmdGopPreSoc15Dxe.inf
+  Drivers/AMD/Gop/AmdGopPostSoc15Dxe.inf
+!endif
 
   #
   # USB Support
@@ -781,6 +792,13 @@ FspiLib|Silicon/Rockchip/Library/FspiLib/FspiLib.inf
   # EFI Memory Attribute Protocol state manager (rhboot shim workaround)
   #
   EmbeddedPkg/Drivers/MemoryAttributeManagerDxe/MemoryAttributeManagerDxe.inf
+
+  #
+  # x64 Binary Compatibility Support
+  #
+!if $(RK_X86_EMULATOR_ENABLE) == TRUE
+  Emulator/X86EmulatorDxe/X86EmulatorDxe.inf
+!endif
 
   #
   # Bds

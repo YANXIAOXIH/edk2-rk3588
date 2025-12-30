@@ -12,15 +12,17 @@
 #include <Protocol/SimpleFileSystem.h>
 
 #include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/DevicePathLib.h>
-#include <Library/PrintLib.h>
 #include <Library/DxeServicesLib.h>
+#include <Library/FdtLib.h>
 #include <Library/MemoryAllocationLib.h>
+#include <Library/PrintLib.h>
+#include <Library/Rk3588Pcie.h>
 #include <Library/RockchipPlatformLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
-#include <libfdt.h>
 
 #include <Guid/Fdt.h>
 #include <Guid/FileInfo.h>
@@ -79,9 +81,9 @@ STATIC
 EFI_STATUS
 EFIAPI
 FdtOpenIntoAlloc (
-  IN OUT  VOID **Fdt,
-  IN OUT  VOID **DestinationFdt, OPTIONAL
-  IN      UINTN   Size
+  IN OUT  VOID   **Fdt,
+  IN OUT  VOID   **DestinationFdt  OPTIONAL,
+  IN      UINTN  Size
   )
 {
   VOID  *NewFdt;
@@ -97,9 +99,9 @@ FdtOpenIntoAlloc (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  Ret = fdt_open_into (*Fdt, NewFdt, Size);
+  Ret = FdtOpenInto (*Fdt, NewFdt, Size);
   if (Ret) {
-    DEBUG ((DEBUG_ERROR, "FdtPlatform: Failed to copy FDT. Ret=%a\n", fdt_strerror (Ret)));
+    DEBUG ((DEBUG_ERROR, "FdtPlatform: Failed to copy FDT. Ret=%a\n", FdtStrerror (Ret)));
     FreePool (NewFdt);
     return EFI_LOAD_ERROR;
   }
@@ -127,26 +129,26 @@ FdtEnableNode (
   INT32  Ret;
   CHAR8  *NodeStatus;
 
-  Node = fdt_path_offset (Fdt, NodePath);
+  Node = FdtPathOffset (Fdt, NodePath);
   if (Node < 0) {
     DEBUG ((
       DEBUG_ERROR,
       "FdtPlatform: Couldn't locate FDT node path '%a'. Ret=%a\n",
       NodePath,
-      fdt_strerror (Node)
+      FdtStrerror (Node)
       ));
     return EFI_NOT_FOUND;
   }
 
   NodeStatus = Enable ? "okay" : "disabled";
-  Ret        = fdt_setprop_string (Fdt, Node, "status", NodeStatus);
+  Ret        = FdtSetPropString (Fdt, Node, "status", NodeStatus);
   if (Ret) {
     DEBUG ((
       DEBUG_ERROR,
       "FdtPlatform: Failed to set '%a' status to '%a'. Ret=%a\n",
       NodePath,
       NodeStatus,
-      fdt_strerror (Ret)
+      FdtStrerror (Ret)
       ));
     return EFI_UNSUPPORTED;
   }
@@ -220,30 +222,30 @@ FdtFixupComboPhyDevices (
     // turning it off.
     //
     if (Phys[Index].Mode == COMBO_PHY_MODE_SATA) {
-      Node = fdt_path_offset (Fdt, Phys[Index].PcieNodePath);
+      Node = FdtPathOffset (Fdt, Phys[Index].PcieNodePath);
       if (Node < 0) {
         continue;
       }
 
-      Property = fdt_getprop (Fdt, Node, "vpcie3v3-supply", &Length);
+      Property = FdtGetProp (Fdt, Node, "vpcie3v3-supply", &Length);
       if (Property == NULL) {
         continue;
       }
 
       ASSERT (Length == sizeof (UINT32));
 
-      Node = fdt_path_offset (Fdt, Phys[Index].SataNodePath);
+      Node = FdtPathOffset (Fdt, Phys[Index].SataNodePath);
       if (Node < 0) {
         continue;
       }
 
-      Ret = fdt_setprop (Fdt, Node, "phy-supply", Property, Length);
+      Ret = FdtSetProp (Fdt, Node, "phy-supply", Property, Length);
       if (Ret < 0) {
         DEBUG ((
           DEBUG_ERROR,
           "FdtPlatform: Failed to set 'phy-supply' property for '%a'. Ret=%a\n",
           Phys[Index].SataNodePath,
-          fdt_strerror (Ret)
+          FdtStrerror (Ret)
           ));
         continue;
       }
@@ -277,6 +279,121 @@ FdtFixupPcie3Devices (
     FixedPcdGetBool (PcdPcie30x2Supported) &&
     PcdGet8 (PcdPcie30PhyMode) != PCIE30_PHY_MODE_AGGREGATION
     );
+}
+
+STATIC
+VOID
+EFIAPI
+FdtFixupPcieResources (
+  IN VOID  *Fdt
+  )
+{
+  STATIC CHAR8  *PcieNodes[] = {
+    [PCIE_SEGMENT_PCIE30X4] = "/pcie@fe150000",
+    [PCIE_SEGMENT_PCIE30X2] = "/pcie@fe160000",
+    [PCIE_SEGMENT_PCIE20L0] = "/pcie@fe170000",
+    [PCIE_SEGMENT_PCIE20L1] = "/pcie@fe180000",
+    [PCIE_SEGMENT_PCIE20L2] = "/pcie@fe190000",
+  };
+
+  UINT32  Segment;
+  CHAR8   *NodePath;
+  INT32   Node;
+  INT32   Ret;
+
+  DEBUG ((DEBUG_INFO, "FdtPlatform: Fixing up PCIe resources\n"));
+
+  for (Segment = 0; Segment < ARRAY_SIZE (PcieNodes); Segment++) {
+    NodePath = PcieNodes[Segment];
+
+    Node = FdtPathOffset (Fdt, NodePath);
+    if (Node < 0) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "FdtPlatform: Couldn't locate '%a' node. Ret=%a\n",
+        NodePath,
+        FdtStrerror (Node)
+        ));
+      continue;
+    }
+
+    UINT32  Ranges[][7] = {
+      {
+        CpuToFdt32 (0x01000000), // I/O space
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_IO_BUS_BASE >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_IO_BUS_BASE)),
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_IO_BASE (Segment) >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_IO_BASE (Segment))),
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_IO_SIZE >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_IO_SIZE))
+      },
+      {
+        CpuToFdt32 (0x02000000), // 32-bit non-prefetchable memory
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_MEM32_BUS_BASE >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_MEM32_BUS_BASE)),
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_MEM32_BASE (Segment) >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_MEM32_BASE (Segment))),
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_MEM32_SIZE >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_MEM32_SIZE))
+      },
+      {
+        CpuToFdt32 (0x43000000), // 64-bit prefetchable memory
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_MEM64_BASE (Segment) >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_MEM64_BASE (Segment))),
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_MEM64_BASE (Segment) >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_MEM64_BASE (Segment))),
+        CpuToFdt32 ((UINT32)((UINT64)PCIE_MEM64_SIZE >> 32)),
+        CpuToFdt32 ((UINT32)(PCIE_MEM64_SIZE))
+      },
+    };
+    Ret = FdtSetProp (Fdt, Node, "ranges", Ranges, sizeof (Ranges));
+    if (Ret < 0) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "FdtPlatform: Failed to set 'ranges' property for '%a'. Ret=%a\n",
+        NodePath,
+        FdtStrerror (Ret)
+        ));
+      continue;
+    }
+
+    UINT32  BusRange[] = {
+      CpuToFdt32 (PCIE_BUS_BASE (Segment)),
+      CpuToFdt32 (PCIE_BUS_LIMIT (Segment))
+    };
+    Ret = FdtSetProp (Fdt, Node, "bus-range", BusRange, sizeof (BusRange));
+    if (Ret < 0) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "FdtPlatform: Failed to set 'bus-range' property for '%a'. Ret=%a\n",
+        NodePath,
+        FdtStrerror (Ret)
+        ));
+      continue;
+    }
+
+    CHAR8  *RidMapProps[] = { "msi-map", "iommu-map" };
+    for (UINT32 RidMapIndex = 0; RidMapIndex < ARRAY_SIZE (RidMapProps); RidMapIndex++) {
+      UINT32  *RidMap;
+      INT32   RidMapLength;
+
+      RidMap = (UINT32 *)FdtGetProp (Fdt, Node, RidMapProps[RidMapIndex], &RidMapLength);
+      if ((RidMap == NULL) || (RidMapLength != sizeof (UINT32) * 4)) {
+        DEBUG ((
+          DEBUG_ERROR,
+          "FdtPlatform: Failed to get '%a' property for '%a'. Ret=%a\n",
+          RidMapProps[RidMapIndex],
+          NodePath,
+          FdtStrerror ((RidMapLength < 0) ? RidMapLength : -FDT_ERR_BADVALUE)
+          ));
+        continue;
+      }
+
+      RidMap[0] = CpuToFdt32 (PCIE_BUS_BASE (Segment) << 8);
+      RidMap[2] = RidMap[0];
+      RidMap[3] = CpuToFdt32 (PCIE_BUS_COUNT << 8);
+    }
+  }
 }
 
 STATIC
@@ -344,20 +461,20 @@ FdtFixupVopDevices (
     FdtEnableNode (Fdt, VopNodesToDisable[Index], FALSE);
   }
 
-  Root = fdt_path_offset (Fdt, "/");
+  Root = FdtPathOffset (Fdt, "/");
   ASSERT (Root >= 0);
   if (Root < 0) {
-    DEBUG ((DEBUG_ERROR, "FdtPlatform: Couldn't locate FDT root. Ret=%a\n", fdt_strerror (Root)));
+    DEBUG ((DEBUG_ERROR, "FdtPlatform: Couldn't locate FDT root. Ret=%a\n", FdtStrerror (Root)));
     return;
   }
 
-  Node = fdt_path_offset (Fdt, "/clock-controller@fd7c0000");
+  Node = FdtPathOffset (Fdt, "/clock-controller@fd7c0000");
   if (Node < 0) {
-    DEBUG ((DEBUG_ERROR, "FdtPlatform: Couldn't locate CRU node. Ret=%a\n", fdt_strerror (Node)));
+    DEBUG ((DEBUG_ERROR, "FdtPlatform: Couldn't locate CRU node. Ret=%a\n", FdtStrerror (Node)));
     return;
   }
 
-  CruPhandle = fdt_get_phandle (Fdt, Node);
+  CruPhandle = FdtGetPhandle (Fdt, Node);
   if (CruPhandle <= 0) {
     DEBUG ((DEBUG_ERROR, "FdtPlatform: Failed to get CRU phandle.\n"));
     return;
@@ -369,58 +486,58 @@ FdtFixupVopDevices (
     CHAR8  NodeName[34];
     AsciiSPrint (NodeName, sizeof (NodeName), "clk-cru-%d-keep-alive-reg", ClockId);
 
-    Node = fdt_add_subnode (Fdt, Root, NodeName);
+    Node = FdtAddSubnode (Fdt, Root, NodeName);
     if (Node < 0) {
       DEBUG ((
         DEBUG_ERROR,
         "FdtPlatform: Couldn't create FDT node '%a'. Ret=%a\n",
         NodeName,
-        fdt_strerror (Node)
+        FdtStrerror (Node)
         ));
       return;
     }
 
-    Ret = fdt_setprop_string (Fdt, Node, "compatible", "regulator-fixed-clock");
+    Ret = FdtSetPropString (Fdt, Node, "compatible", "regulator-fixed-clock");
     if (Ret < 0) {
       DEBUG ((
         DEBUG_ERROR,
         "FdtPlatform: Failed to set 'compatible' property for '%a'. Ret=%a\n",
         NodeName,
-        fdt_strerror (Ret)
+        FdtStrerror (Ret)
         ));
       return;
     }
 
-    Ret = fdt_setprop_string (Fdt, Node, "regulator-name", NodeName);
+    Ret = FdtSetPropString (Fdt, Node, "regulator-name", NodeName);
     if (Ret < 0) {
       DEBUG ((
         DEBUG_ERROR,
         "FdtPlatform: Failed to set 'regulator-name' property for '%a'. Ret=%a\n",
         NodeName,
-        fdt_strerror (Ret)
+        FdtStrerror (Ret)
         ));
       return;
     }
 
-    Ret = fdt_setprop_empty (Fdt, Node, "regulator-always-on");
+    Ret = FdtSetPropEmpty (Fdt, Node, "regulator-always-on");
     if (Ret < 0) {
       DEBUG ((
         DEBUG_ERROR,
         "FdtPlatform: Failed to set 'regulator-always-on' property for '%a'. Ret=%a\n",
         NodeName,
-        fdt_strerror (Ret)
+        FdtStrerror (Ret)
         ));
       return;
     }
 
-    UINT32  ClockPair[] = { cpu_to_fdt32 (CruPhandle), cpu_to_fdt32 (ClockId) };
-    Ret = fdt_setprop (Fdt, Node, "clocks", ClockPair, sizeof (ClockPair));
+    UINT32  ClockPair[] = { CpuToFdt32 (CruPhandle), CpuToFdt32 (ClockId) };
+    Ret = FdtSetProp (Fdt, Node, "clocks", ClockPair, sizeof (ClockPair));
     if (Ret < 0) {
       DEBUG ((
         DEBUG_ERROR,
         "FdtPlatform: Failed to set 'clocks' property for '%a'. Ret=%a\n",
         NodeName,
-        fdt_strerror (Ret)
+        FdtStrerror (Ret)
         ));
       return;
     }
@@ -437,13 +554,14 @@ ApplyPlatformFdtFixups (
   EFI_STATUS  Status;
 
   // Expand the FDT a bit to give room for any additions.
-  Status = FdtOpenIntoAlloc (Fdt, NULL, fdt_totalsize (*Fdt) + SIZE_4KB);
+  Status = FdtOpenIntoAlloc (Fdt, NULL, FdtTotalSize (*Fdt) + SIZE_4KB);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
   FdtFixupComboPhyDevices (*Fdt);
   FdtFixupPcie3Devices (*Fdt);
+  FdtFixupPcieResources (*Fdt);
   FdtFixupVopDevices (*Fdt);
 
   return EFI_SUCCESS;
@@ -453,10 +571,10 @@ STATIC
 EFI_STATUS
 EFIAPI
 ReadFdtFromFilePath (
-  IN      EFI_FILE_PROTOCOL *Root,
-  IN      CHAR16 *Path,
-  IN OUT  UINTN *FileSize, OPTIONAL
-  IN OUT  VOID                **Fdt
+  IN      EFI_FILE_PROTOCOL  *Root,
+  IN      CHAR16             *Path,
+  IN OUT  UINTN              *FileSize  OPTIONAL,
+  IN OUT  VOID               **Fdt
   )
 {
   EFI_STATUS         Status;
@@ -546,13 +664,13 @@ ReadFdtFromFilePath (
     goto Exit;
   }
 
-  Ret = fdt_check_header (*Fdt);
+  Ret = FdtCheckHeader (*Fdt);
   if (Ret) {
     DEBUG ((
       DEBUG_ERROR,
       "FdtPlatform: '%s' has an invalid header! Ret=%a\n",
       Path,
-      fdt_strerror (Ret)
+      FdtStrerror (Ret)
       ));
     Status = EFI_LOAD_ERROR;
     goto Exit;
@@ -572,9 +690,11 @@ Exit:
   return Status;
 }
 
-#define FDT_GET_USED_SIZE(Fdt)  (fdt_off_dt_struct (Fdt)       \
-                                 + fdt_size_dt_struct (Fdt)    \
-                                 + fdt_size_dt_strings (Fdt))
+//
+// Assume the FDT ends with a strings block.
+// See https://devicetree-specification.readthedocs.io/en/stable/flattened-format.html
+//
+#define FdtUsedSize(Fdt)  (FdtOffsetDtStrings (Fdt) + FdtSizeDtStrings (Fdt))
 
 STATIC
 EFI_STATUS
@@ -592,7 +712,6 @@ InstallOverlaysFromDirectoryPath (
   UINTN              CurrentInfoSize;
   EFI_FILE_INFO      *DirEntryInfo;
   VOID               *FdtOverlay;
-  UINTN              FdtSize;
   INT32              Ret;
 
   Status = Root->Open (Root, &Dir, Path, EFI_FILE_MODE_READ, 0);
@@ -658,21 +777,23 @@ InstallOverlaysFromDirectoryPath (
       continue;
     }
 
-    FdtSize = FDT_GET_USED_SIZE (*Fdt);
-    if (FdtSize + DirEntryInfo->FileSize >= fdt_totalsize (*Fdt)) {
+    if (FdtUsedSize (*Fdt) + DirEntryInfo->FileSize >= FdtTotalSize (*Fdt)) {
       //
       // Expand the buffer by at least 8 KB, so we don't end up
       // reallocating for every small overlay.
       //
-      FdtSize = fdt_totalsize (*Fdt) + MAX (DirEntryInfo->FileSize, SIZE_8KB);
-      Status  = FdtOpenIntoAlloc (Fdt, NULL, FdtSize);
+      Status = FdtOpenIntoAlloc (
+                 Fdt,
+                 NULL,
+                 FdtTotalSize (*Fdt) + MAX (DirEntryInfo->FileSize, SIZE_8KB)
+                 );
       if (EFI_ERROR (Status)) {
         FreePool (FdtOverlay);
         break;
       }
     }
 
-    Ret = fdt_overlay_apply (*Fdt, FdtOverlay);
+    Ret = FdtOverlayApply (*Fdt, FdtOverlay);
     FreePool (FdtOverlay);
     if (Ret) {
       DEBUG ((
@@ -680,15 +801,15 @@ InstallOverlaysFromDirectoryPath (
         "FdtPlatform: Failed to apply overlay '%s' (%d bytes). Ret=%a\n",
         DirEntryInfo->FileName,
         DirEntryInfo->FileSize,
-        fdt_strerror (Ret)
+        FdtStrerror (Ret)
         ));
 
       if (Ret == -FDT_ERR_NOSPACE) {
         DEBUG ((
           DEBUG_ERROR,
           "FdtPlatform:   FDT bytes used: %d, total: %d\n",
-          FDT_GET_USED_SIZE (*Fdt),
-          fdt_totalsize (*Fdt)
+          FdtUsedSize (*Fdt),
+          FdtTotalSize (*Fdt)
           ));
       }
 
@@ -862,7 +983,7 @@ FdtPlatformProcessFileSystem (
   // Clone the FDT so that we can restore the original one
   // in case it gets damaged.
   //
-  Status = FdtOpenIntoAlloc (&Fdt, &NewFdt, fdt_totalsize (Fdt));
+  Status = FdtOpenIntoAlloc (&Fdt, &NewFdt, FdtTotalSize (Fdt));
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -897,7 +1018,7 @@ FdtPlatformProcessFileSystem (
   // overlays installed.
   //
   if (!EFI_ERROR (Status)) {
-    Ret = fdt_check_header (NewFdt);
+    Ret = FdtCheckHeader (NewFdt);
     if (Ret == 0) {
       if ((Fdt != mPlatformFdt) || (OverlaysCount > 0)) {
         FdtToInstall = NewFdt;
@@ -907,7 +1028,7 @@ FdtPlatformProcessFileSystem (
       DEBUG ((
         DEBUG_ERROR,
         "FdtPlatform: New FDT has an invalid header! Ret=%a\n",
-        fdt_strerror (Ret)
+        FdtStrerror (Ret)
         ));
     }
   }
@@ -1154,7 +1275,7 @@ NotifyExitBootServices (
   Status = EfiGetSystemConfigurationTable (&gFdtTableGuid, &Dtb);
   if (EFI_ERROR (Status) || (Dtb == NULL)) {
     DEBUG ((DEBUG_WARN, "FdtPlatform: No FDT installed!\n"));
-  } else if (fdt_totalsize (Dtb) <= SIZE_4KB) {
+  } else if (FdtTotalSize (Dtb) <= SIZE_4KB) {
     // Some loaders may install a dummy table, warn in this case too.
     DEBUG ((DEBUG_WARN, "FdtPlatform: No usable FDT installed!\n"));
   }
@@ -1208,12 +1329,12 @@ LoadPlatformFdt (
     return EFI_NOT_FOUND;
   }
 
-  Ret = fdt_check_header (Fdt);
+  Ret = FdtCheckHeader (Fdt);
   if (Ret) {
     DEBUG ((
       DEBUG_ERROR,
       "FdtPlatform: Firmware FDT has an invalid header! Ret=%a\n",
-      fdt_strerror (Ret)
+      FdtStrerror (Ret)
       ));
     return EFI_NOT_FOUND;
   }
